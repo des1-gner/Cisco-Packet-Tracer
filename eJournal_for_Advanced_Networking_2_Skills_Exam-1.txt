@@ -1,0 +1,1045 @@
+eJournal for Advanced Networking 2 v2
+******************************************************
++++++++++++++++
+week 12 Frame Relay
+++++++++++++++
+!Frame Relay full mesh, inverse-ARP
+!How do you know the topology is full mesh?
+!only one network address covers the Frame Relay network
+e.g. R1,R2 and R3 might all be part of 192.168.1.0/24
+There is a connection between each pair
+Traffic flows directly from each router to another router
+
+!Always congifure these 2 commands
+int s0/0/0
+ encapsulation frame-relay
+ frame-relay lmi-type ansi
+!
+!configure eigrp 1 
+!if you are asked to enable eigrp 1 with network commands...
+* for the LAN (199.1.11.0/24)
+and on the Frame relay network (199.1.1.0/24)
+router eigrp 1
+ no au
+ network 199.1.1.0
+ network 199.1.11.0
+!
+!OR..if you are asked to enable EIGRP
+!OR you are asked to enable eigrp one ahc active interface..then use the following eigrp command:
+
+router eigrp 1
+ no au
+ network 0.0.0.0
+!
++++++++++++++++++++++++++++++++++++
+Static Frame Relay Maps
+For full mesh (i.e only one network)
+but you want the dlci numbers to appear in a show run
+!
+!R1,R2,R3
+int s0/0/0
+encapsulation frame-relay
+frame-relay lmi-type ansi
+!DLCIs  R1 to R2   102
+!DLCIs  R1 to R3 103
+!R1
+int s0/0/0
+frame-relay map ip 10.1.1.2 102 broadcast
+frame-relay map ip 10.1.1.3 103 broadcast
+++++++++++++++++++++++++++++++++++
+!PT Frame Relay hub n spoke  subinterface
+Hub and SPoke i.e. Headquarters and branches
+There is a separet network for each connection
+e.g. HQ to branch 1 might be 192.168.1.0/24
+HQ to branch 1 might be 192.168.2.0/24
+!There is a connection only between HQ and each branch
+Traffic flows always through the HQ
+
+!these configs are for the hub
+int s0/0/0
+  no ip address
+ encapsulation frame-relay
+ frame-relay lmi-type ansi
+!
+!cisco recommends..the subinterface number is the
+!same as the DLCI number
+
+interface Serial0/0/0.152 point-to-point
+ ip address 199.1.1.1 255.255.255.0
+ frame-relay interface-dlci 152
+!
+interface Serial0/0/0.538 point-to-point
+ ip address 199.1.2.1 255.255.255.0
+ frame-relay interface-dlci 538
+!
+!configure eigrp 1 on the LAN (199.1.11.0/24)
+and on the Frame relay networks (199.1.1.0/24, 192.168.2.0/24)
+router eigrp 1
+ no au
+ network 199.1.1.0
+ network 199.1.2.0
+ network 199.1.11.0
+OR just one network command
+network 0.0.0.0
+!
++++++++++++++++
+week 11 QoS, Voice
+++++++++++++++
+*Configure a class map called CLASS1 that will match either telnet or ssh packets
+! must have match any....either telnet or ssh will match
+class-map match-any interactive
+ match protocol telnet
+ match protocol ssh
+!
+++
+*Configure a class map called BROWSE that will match secure browsing
+!because only one match,doesnt matter if match-any or match-all
+
+class-map match-any BROWSE
+ match protocol https
+++
+*Configure a class map called PING_TO_R1 that will match ping packets and match ACL101 simultaneously
+(assume ACL 101 is already configured)
+!becasue both must be matched , use match-all
+class-map match-all PING_TO_R1 
+ match protocol icmp
+ match access-group 101
+!
++
+Configure a policy map called MY-POLICY that will..
+*set the precedence to 4 for packets from class BROWSE
+*set the dscp to CS3 for packets from class CLASS1
+
+policy-map MY-POLICY
+class BROWSE
+ set precedence 4
+ set ip dscp CS3
+!
+++
+Apply the policy-map called MY-POLICY outobund on the Router’s s0/0/0
+!
+interface Serial0/0/0
+  service-policy output MY-POLICY
+++
+test QoS    show policy-map  int s0/0/0 
+
+!!
+!QoS for voice packets on the switch
+*Enable QoS on the switch
+*Configure port fa0/3 to trust layer 2 values
+*Only trust of there is a cisco phone attached to port fa0/3
+(assume voice vlan 170 is aready configured on the port)
+
+Mls qos
+!
+Int fa0/3
+   switchport voice vlan 100
+   mls qos trust dscp 
+   mls qos trust device cisco-phone
++++
+
+
+
+
+
+
++++++++++++++++
+week 10 Wireless
+++++++++++++++
+WLC
+From the admin PC< browse to the WLC
+Must be https  e.g.https://192.168.200.254
+CLick Login
+Username/password  e.g.  admin/Cisco123
+!Configure a new WLAN
+
+Click on WLANS
+Find and click the button called Go (next to Create New)
+
+Enter the Profile Name of the new WLAN.
+ e.g. Floor 2 Employees.
+ Assign an SSID to the WLAN e.g.SSID-5. 
+
+Select the ID for the WLAN. Select a value of 5 to keep it consistent with the VLAN number and SSID. 
+
+Click Apply so that the settings go into effect
+.
+Click Enabled to make the WLAN functional.
+
+Choose the VLAN interface that will be used for the WLAN. . Click the drop-down box for Interface/Interface Group (G). Select the WLAN-5 interface. 
+
+Click  Apply to enable the new settings. 
+
+!Security for this WLAN
+In the WLANs Edit screen for the Floor 2 Employees WLAN, click the Security tab. Under the Layer 2 tab, select WPA+WPA2 from the Layer 2 Security drop down box. This will reveal the WPA parameters.
+
+Click the checkbox next to WPA2 Policy. This will reveal additional security settings. Under Authentication Key Management, enable PSK.
+
+Now you can enter the pre-shared key that will be used by hosts to join the WLAN. 
+e.g.Use Cisco567 as the passphrase.
+
+Click Apply to save these settings.
+
++++++++++++++++
+week 9 EIGRP
+++++++++++++++
+&&&&
+!Three ways to configure EIGRP 
+&&&&
+!Use network commands without any inverse mask
+Router eigrp 1
+Network 192.168.64.9 
+Network 192.168.68.0  
+network 10.0.0.0
+network 172.16.0.0
+!
+
+!Use eigrp network statements and inverse masks that match the !subnet masks on the interfaces
+!!use show ip route connected to see the network statements and masks
+!the example is for a /30 (0.0.0.3) and /24 (0.0.0.255)
+Router eigrp 1
+Network 192.168.64.8  0.0.0.3  
+Network 192.168.68.0  0.0.0.255  
+!
+!Use eigrp network statements and 0.0.0.0 masks that match the !ip address on the interfaces
+!use sh ip int brief to see the interface addresses
+!
+Router eigrp 1
+Network 192.168.64.9  0.0.0.0 
+Network 192.168.68.1  0.0.0.0 
+
+&&&&
+Advertise a default static route using EIGRP
+&&&
+Router eigrp 1
+Redistribute static
+!
+&&&&
+EIGRP Authentication
+&&&
+Int s0/0/1
+Ip authentication mode eigrp 1 md5
+Ip authentication key-chain eigrp 1 CHAIN_5
+!
+&&&&
+eigrp cost - prefer one link over another
+&&&&&
+!s0/0/0 is not to be used by eigrp => make its cost very high by increasing the delay
+int s0/0/0
+delay 5000
+!
+!Note: a delay 5000  causes the delay to be 50,000 because the units are  10s of microseconds
+&&&&
+EIGRP route summarization
+&&&
+Calculate a summary of the routes
+e.g. summary is   10.10.240.0 /20
+
+!Configure eigrp to advertise the summary out each interface:
+Int gi1/0/1
+ip summary-address eigrp 1 10.10.240.0 255.255.240.0
+
++++++++++++++++
+week 8 DHCP Snooping
+++++++++++++++
+&&&&&
+Basic DHCP Snooping
+&&&&
+!turn on the snooping service
+ip dhcp snooping
+!configure what vlans are to be snooped
+ip dhcp snooping vlan 5
+!
+!Configure a trusted port for snooping
+int fa0/1
+ip dhcp snooping trust
+!
+&&&&&
+some other DHCP Snooping options
+&&&&
+!configure snooping rate limit on an untrusted port
+int fa0/2
+ip dhcp snooping limit rate 15
+!
+!if we want to save the snooping database in Flash memory
+ip dhcp snooping database flash:/snooping-binding
+ip dhcp snooping database write-delay 15
+!
+&&&&&
+DHCP Snooping option 82 problem
+&&&&
+!Assume Sw1 connects to the dhcp client
+!Sw2 is the next switch in the path to the dhcp server
+!we assume that the dhcp server is a cisc0 router
+
+Two commands needed for dhcp to work:
+! trust packets with DHCP Option 82 on untrusted ports: 
+!On Sw2
+ip dhcp snooping information option allow-untrusted 
+
+AND
+!Configure the cisco router (DHCP Server ) to trust DHCP packets with option 82 set: 
+!cisco router that is the dhcp server
+ip dhcp relay information trust-all
+
+What if a Windows server is the dhcp server (not a cisco router)
+!turn off dhcp option 82 on every switch
+
+!Sw1 and Sw2
+no ip dhcp snooping information option
+
++++++++++++++++
+week 7 OSPF Routing
+++++++++++++++
+&&&&
+!Three ways to configure OSPF 
+&&&&
+! directly on an interface
+!use show ip route connected to see what interfaces
+Int gi1/0/2
+Ip ospf 1 area 0
+!
+!Use ospf network statements and inverse masks that match the !subnet masks on the interfaces
+!!use show ip route connected to see the network statements and masks
+!the example is for a /30 (0.0.0.3) and /24 (0.0.0.255)
+Router ospf 1
+ Router-id 7.7.7.7
+Network 192.168.64.8  0.0.0.3  area 0
+Network 192.168.68.0  0.0.0.255  area 0
+!
+!Use ospf network statements and 0.0.0.0 masks that match the !ip address on the interfaces
+!use sh ip int brief to see the interface addresses
+!
+Router ospf 1
+Network 192.168.64.9  0.0.0.0  area 0
+Network 192.168.68.1  0.0.0.0  area 0
+!
+&&&&
+floating default static routes
+&&&&&
+!the AD value can be any value higher than 1  e.g. 8
+Ip route 0.0.0.0  0.0.0.0 s0/0/0
+Ip route 0.0.0.0  0.0.0.0 s0/0/1   8
+!
+!advertise this default route using OSPF
+Router ospf 1
+Default-information originate
+!
+&&&&
+ospf authentication
+&&&&&
+Int s0/0/0
+Ip ospf authentication message-digest
+Ip ospf message-digest-key 1  md5 cisco2
+!
+&&&&
+ospf redistribution and ospf special area - stub area 1
+&&&&&
+Router ospf 1
+Redistribute eigrp 1 metric 800 subnets
+!
+Router ospf 1
+ Area 1 stub
+!
+&&&&
+ospf cost - prefer one link over another
+&&&&&
+!s0/0/0 is not to be used by ospf => make its cost very high
+int s0/0/0
+ip ospf cost 500
+!
+&&&&
+ospf DR elections
+&&&&&
+!make sure R1 becomes DR on its gi0/0 interface
+!the default priority is 1; make it higher
+int gi0/0
+ Ip ospf priority 100
+
++++++++++++++++
+week 6 HSRP
+++++++++++++++
+1) Using router interfaces 
+e.g. gi0/1 is a layer 3 port
+!on R1
+Int gi0/1
+Standby 4  ip 10.1.4.1
+ Standby 4 priority 105
+ Standby 4 preempt
+ standby 4 track Gi0/0
+
+!on R2
+Int gi0/1
+Standby 4  ip 10.1.4.1
+ Standby 4 priority
+ Standby 4 preempt
+
+!!!!!!!!!!!!!
+2) Using MLS routed ports 
+e.g. Gi0/1 is a layer 2 port
+Make gi0/1 a layer 3 port with an ip address
+!MLS1
+int gi0/1
+ no switchport
+ip add 10.1.4.2 255.255.255.0
+!
+!MLS2
+int gi0/1
+ no switchport
+ip add 10.1.4.3 255.255.255.0
+!
+Then use same hsrp commands as for 1) above
+
+!!!!!!!!!!!!!!!!!!!!!!!!
+3) Using MLS SVIs
+e.g. hsrp for vlan 40 hosts
+
+Use the same commands as 1) above but
+replace int gi0/1 with int vlan 40
+
+++++++++++++++++++++++++++++++++
+week 5 STP , Etherchannel
+++++++++++
+
+!!Basic STP configurations
+
+*Make DLS1 primary root bridge,RB, for vlan 100
+and secondary RB for vlan 200
+
+spanning-tree vlan 100 root primary
+spanning-tree vlan 200 root secondary
+
+*DLS2 must be primary root bridge,RB, for vlan 300
+spanning-tree vlan 100  priority 0
+
+* Connections to end devices, switcport
+forwards quickly when the link comes up
+
+!for all access ports
+spanning-tree portfast default
+!for a single switchport
+int fa0/5
+ spanning-tree portfast 
+
+*Switches respond quickly if a RP, root port, status changes
+spanning-tree mode rapid-pvst
+
+*Guard against any switch connecting to port gi0/1
+int gi0/1 
+ spanning-tree bpduguard enable
+
+*Guard against a conenct switch on  gi0/1 claims to be RB
+int gi0/2
+ spanning-tree guard root
+
+!!! Change which port is Forwarding or blocking
+on a non root bridge switch
+using port cost or port priority
+!!
+2 links from Sw1 to Sw2
+
+Sw1 is root bridge
+Sw2 is non root bridge
+
+For vlan 5, 
+Sw2 port fa0/1 is forwarding, fa0/2 is blocking
+
+To Make fa0/2 forwarding...
+
+!! Change STP port cost
+On Sw2 (the non root bridge)
+
+!make the blocking port cost less than 19
+int fa0/2
+ span vlan 5 cost 10
+!OR
+!make the forwarding port cost more than 19
+int fa0/1
+ span vlan 5 cost 30
+!!!!!!!!!!
+!!Change SPT port priorities
+On Sw1 (the root bridge)
+
+!make the port that connects to the blocking port
+!on the other switch, have a port priority less than 128
+int fa0/2
+ span vlan 5 port-priority 64
+!OR
+!make the port that connects to the forwarding port
+!!on the other switch, have a port priority more than 128
+int fa0/1
+ span vlan 5 port-priority 144
+
+!!Layer 2 Etherchannel
+!
+Between S1 and S3, 
+Port Channel group 1,
+using cisco PAgP desirable/desirable
+or desirable/auto
+
+!S1,S3
+int range fa0/21-22
+shut
+sw m trunk
+channel-group 1 mode desirable
+!
+
+!Enable the interfaces and verify the channel
+
+!S1,S3
+int range fa0/21-22
+no shut
+
+sh eth summary
+
+Alternative; Using standards based LACP
+active/active  or active /passive
+
+!!! Load balance
+*Configure each switch to load balance using destination mac address 
+
+!S1,S3
+Port-channel load-balance dst-mac
+!!
+
+!!Layer 3 Etherchannel
+!
+!DS1, DS2 with no negotiation
+ int range fa0/11-12
+shut
+no switchport	
+ channel-group 1 mode on
+!
+*re-enable the interfaces
+int range fa0/11-12
+no shut
+
+* Ip addressing on the port channel interfaces
+!e.g. 192.168.10.0/30
+!DS1
+int Po1
+ ip add 192.168.10.1 255.255.255.252
+!
+!DS2
+int Po1
+ ip add 192.168.10.2 255.255.255.252
+!
+!If negotiate using cisco
+channel-group 1 mode desirable
+
+!If negotiate using standards based
+channel-group 1 mode active
+
+
+
+
+++++++++++++++++++++++++++++++++
+week 4  Dot1x, NTP
+++++++++++
+dot1x on the server
+!
+*turn on AAA
+*put settings on the server for the switch to be
+**aaa client e.g.name, ip address, password
+Check that the ip address of the switch is correct
+** username/password entry, down the bottom of the server page
+!
+* go to Services/Radius EAP and 
+check the box Allow-EAP-MD5
+!!
+dot1x on the switch 
+!
+aaa authentication dot1x default group radius 
+dot1x system-auth-control
+!
+!switch port fa0/2 connects to PC1
+int fa0/2
+ authentication port-control auto
+dot1x pae authenticator
+!!
+dot1x on the PC
+!
+*Desktop/IPconfig check the Use 802.1X box
+*enter the username
+*enter the password
+!!
+
++++++
+NTP
++
+Use a cisco router R1 as an ntp server
+with stratum 6
+
+!R1
+ntp master 6
+!
+
+Make R2 a client of this server (2.1.1.2)
+
+!R2
+ntp server 2.1.1.2
+
+Manually set the clock time on a router to 2.15pm
+R# clock set 14:15:0 20 August 2021
+
+!!
+NTP with time zones
+!
+Set so the time on Sydney is 5pm
+
+*Lookup the time zones 
+e.g.for 3 cities Dubai, Sydney and Los Angeles
+Dubai +4, Sydney +10, LA -8
+
+* Work out the UTC (=GMT) time
+5pm = 17:00 in Sydnet
+Subtract 10 to get UTC time
+
+UTC time = 17-10 =  7:00  (7am)
+*Go to the router R_Dubai and make it master stratum 5
+!R_Dubai
+ntp master 5
+!
+*Set the clock time on Dubai at UTC time
+!R_Dubai#
+clock set 7:00:00  20 August 2021
+
+*Set the time zone on this ntp master
+
+!R_Dubai(config)#
+clock timezone GST 4
+
+*Make R_Sydney and R_LA NTP clients of R_Dubai (address 2.1.1.1)
+!on R_Sydney and on R_LA
+ntp server 2.1.1.1
+
+*Set the time zone on Sydney and on LA
+!R_Sydney(config)#
+clock timezone GST 10
+
+!R_LA(config)#
+clock timezone GST -8
+
+!Manually fast forward PT time
+
+!!
+AAA Accounting on router R1 (192.168.10.1)
+using a radius server at 192.168.10.254
+!
+*Enable AAA
+
+aaa new-model
+!
+*Check settings on the server to make R1 a AAA client 
+-router name R1, router address 192.168.1.1, 
+password ciscosecret
+
+*Configure R1 to be a client of the AAA server
+!R1
+radius-server host 192.168.10.2 key ciscosecret
+
+[there needs to be a AAA login method already configured
+e.g.
+aaa authentication login default group radius  local]
+
+*configure a AAA accounting named method
+aaa accounting exec SET_ACCT start-stop group radius
+
+* configure the line with accounting e.g. console line
+line con 0
+ accounting exec  SET_ACCT
+! OR vty lines
+
+line vty 0 4
+ accounting exec  SET_ACCT
+
+*check accounting records
+Try to login 
+
+go to the server, desktop, aaa accounting app
+++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
+week 3  DHCP ipv4 and ipv6s
+++++++++++
+ipv4 DCHP on a server
+++
+
+the default pool, serverPool,
+ is for local  i.e. clients on the same
+network as the dhcp server
+!!
+check that the service is on
+!!
+the tftp server is for cisco phones
+!!
+the WLC address is for wireless APs
++++++
+
+!ipv4 DHCP on a router
+
+Check that these 2 conditions are met:
+1) routing is turned on
+ip routing
+2) the interface connected to the clients
+has a valid ip global address
+e.g.
+int fa0/0
+ ip address 192.168.10.1 255.255.255.0
+ no shut
+
+!Sydney_MLS 
+!
+ip dhcp excluded-address 192.168.10.1 192.168.10.5
+!
+ip dhcp pool Syd-pool
+ network 192.168.10.0  255.255.255.0
+ default-router 192.168.10.1
+ dns-server 172.16.10.252
+
+!option 43 gives the address of the
+! WLC for wireless Access Points
+option 43  ip 172.16.10.122
+
+!Option 150 is gives the tftp server address
+for cisco phones
+option 150  ip 10.1.10.252
+++
+!if clients are remote i.e. not on the
+!same network as the server
+Int vlan 1
+ Ip helper-address 10.1.10.1
+!
++++++
+
+!ipv6 DHCP on a router
+
+Check that these 2 conditions are met:
+1) routing is turned on
+ipv6 unicast-routing
+2) the interface connected to the clients
+has a valid ipv6 global address
+e.g.
+int fa0/0
+ ipv6 address 2001:abcd:cafe:5:1/64
+
+!!
+SLAAC  = autconfig
+
+By default O = 1 and M =1 on an interface
+to make sure..
+
+int fa0/1
+no ipv6 nd managed-config-flag
+no ipv6 nd other-config-flag
+!!
+
+You may statically set the ipv6 DNS
+address on a PC, then press the 
+autconfig button
+!!
+If you want a router interface to get
+an autconfig address from another router
+
+int fa0/1
+ ipv6 address autoconfig
+
+!!
+Stateless ipv6 DHCP
+check the 2 conditions are met
+!
+ipv6 dhcp pool melb-lan
+  dns-server 2002:ABCD:1234:3::252
+ domain-name cisco_melbourne.com
+!
+int fa0/0
+ ipv6 dhcp server melb-lan
+ ipv6 nd other-config-flag
+!
+!!
+stateful ipv6 DHCP
+
+ipv6 dhcp pool munich-lan
+address prefix 2001:1FE:5A:1::/64  lifetime 86400  43200
+dns-server 2001:1FE:5A:3::252
+domain-name cisco_munich.com
+!
+int fa0/0
+ipv6 dhcp server munich-lan
+ipv6 nd managed-config-flag
+
+
+
+++++++++++++++++++++++++++++++++
+week 2  MPLS
+++++++++++
+
+!IVR on a MLS
+!!
+•Configure MLS1 with interVLAN Routing to allow VLAN2 devices to communicate with VLAN 3 devices
+
+!MLS1 Create an SVI (int VLAN) for each VLAN
+int vlan 2
+ Ip address 10.1.2.1   255.255.255.0
+ No shut
+!
+int vlan 3
+ Ip address 10.1.3.1   255.255.255.0
+ No shut
+!
+!MLS1  turn on routing on the MLS
+ip routing
+!!!
+
+!! Layer 3 port on an MLS
+!!
+• Port gi0/1 on Sw_C is to be a layer 3 port with address 10.10.10.2/30
+!Sw_C
+int gi0/1
+ No switchport
+ Ip address 10.10.10.2   255.255.255.252
+ No shut
+!
+!!A single EIGRP command to turn on EIGRP on all MLS2 interfaces
+!MLS2
+
+router eigrp 1
+ no au
+ network 0.0.0.0
+!!
+!!A single OSPF command to turn on OSPF on all MLS3 interfaces
+!MLS3
+router ospf 1
+ network 0.0.0.0  255.255.255.255  area 0
+!!
+OR
+enable OSPF on each MLS interface
+e.g.
+int vlan 3
+ip ospf 1 area 0
+!
+int gi0/10
+ip ospf 1 area 0
+!
+++++++++++++++++++++++++++++++++
+week 2  Switchport Modes
+++++++++++
+• On Sw2 port Gi0/0/2, configure so that DTP sends a message that says that Sw2 Gi0/0/2 definitely wants to trunk.
+
+! Sw2
+Int Gi0/0/2
+ Switchport mode trunk
+!
+• Configure the Sw0 fa0/1 to send a DTP message which will ask the port at the other end to trunk i.e. Sw0 port fa0/1 actively wants to trunk
+
+! Sw0
+Int fa0/1
+ Switchport mode dynamic desirable
+!
+
+• Sw3 fa0/2 connects to a rotuer and  definitely wants to trunk. Turn of DTP on Sw3 because the router does not understand DTP
+
+!Sw3
+Int fa0/2
+ Switchport mode trunk
+ switchport nonegotiate
+!
+
+++++++++++++++++++++++++++++++++
+week 2 Advanced NAT
+Static NAT => PCs on the outside will use a single public address to access one of our internal servers
+•	The FTP server (10.1.1.101) is statically translated to the public address  208.8.8.201
+
+!R-SNAT
+ip nat inside source static 10.1.1.101 208.8.8.201
+!
+Verify  show ip nat translation
+!
+Clear the NAT translation table before doing the next NAT task
+!R1-NAT
+clear ip nat translation *
+
++++
+Static PAT => PCs on the outside will use the same public address to access two different internal servers. The port number will decide which server to use
+
+Configure  Static PAT on the router R-SNAT to satisfy the following requirements:
+
+•	The HTTP server (10.1.1.100) is statically translated to the public address  208.8.8.200, but only for port 80 browsing
+•	The HTTPS server (10.1.1.105) is statically translated to the public address  208.8.8.200, but only for port 443 browsing
+
+!R-SNAT
+ip nat inside source static tcp 10.1.1.100 80 208.8.8.200 80
+!
+ip nat inside source static tcp 10.1.1.105 443 208.8.8.200 443
+
+++
+Static PAT => PCs on the outside will use two different public address to access the same internal server. The port number will decide which public address to use
+
+!R-SNAT  
+ip nat inside source static tcp 10.1.1.106  443  208.8.8.220 443
+!
+ip nat inside source static tcp 10.1.1.106  80  208.8.8.230 80
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=
+eJournal for the end of week 1
+i.e. covers commands for week 1 only 
+++++++++++++++++++++++++++
+week 1a Task 1 SPAN, Switch Port Analyzer
+++++++++++
+• Configure SPAN on Sw1 and Sniffer 2, so that ping frames coming in or 
+going out  port fa0/10 are monitored on port fa0/5
+!
+monitor session 1 source interface Fa0/10
+monitor session 1 destination interface Fa0/5
+!
+!Also,edit the filter on the sniffer to monitor ping packets
+Verify  Show monitor
+!!
++++
+week 1a Task 2 RSPAN, Remote SPAN
+++
+• Configure RSPAN session 3 with source on Sw1 so that ping frames coming 
+in on
+port fa0/10 are monitored on port fa0/2 on Sw2 .Use vlan 5 to do this
+
+!Sw1 and Sw2
+Vlan 5
+Name RSPAN
+Remote-span
+
+!fa0/11 is any unused port on Sw1
+monitor session 3 source interface Fa0/10 rx
+!Sw1 reflector port is any unused port on Sw1
+monitor session 3 destination remote vlan 5 reflector-port fa0/11
+!
+!Sw2
+monitor session 3 source remote vlan 5
+!
+monitor session 3 destination interface Fa0/2
+!!
+Verify  Show monitor
++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
+week 1b Review Dynamic PAT
+++++++++++
+Task 1A  Configure  dynamic PAT , overloading on an interface, on the 
+router R-NAT to satisfy the following requirements:
+
+• Internal PCs with addresses belonging 10.1.1.128/25 may be 
+dynamically translated to the public address in the R-NAT Gi0/0/1 
+address (108.8.8.101)
+
+These are the 2 PCs labeled as Dynamic
+Use access list 10.
+
+This is called Dynamic Pat using an interface address
+!R-NAT
+access-list 10 permit 10.1.1.128 0.0.0.127
+!
+ip nat inside source list 10  int gi0/0/1 overload
+!
+Verify
+clear access-list counters
+clear ip nat translation *
+!
+Show access-lists
+show ip nat translation
+show ip nat statistics
+++
+Task 1B  Configure  dynamic PAT, using a pool of public addresses, on the 
+router R-NAT to satisfy the following requirements:
+• Internal PCs with addresses belonging 10.1.1.0/25 may be dynamically 
+
+translated to the public addresses in the pool called NATPOOL20
+
+• This pool should include the 3 public addresses 131.1.1.1,  
+131.1.1.2  and  131.1.1.3
+
+Use the overload command so that thousands of connections can use each 
+public address in the pool. This is called Dynamic Pat using a pool
+!R-NAT
+access-list 20 permit 10.1.1.0   0.0.0.127
+!
+ip nat pool NATPOOL20   131.1.1.1 131.1.1.3   netmask   255.255.255.0
+ip nat inside source list 20  pool NATPOOL20 overload
+!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
